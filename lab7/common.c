@@ -8,19 +8,21 @@
     a exact len octeți din buffer.
 */
 int recv_all(int sockfd, void *buffer, size_t len) {
+
   size_t bytes_received = 0;
   size_t bytes_remaining = len;
   char *buff = buffer;
-  /*
-    while(bytes_remaining) {
-      TODO: Make the magic happen
-    }
-  */
+  int rc;
 
-  /*
-    TODO: Returnam exact cati octeti am citit
-  */
-  return recv(sockfd, buffer, len, 0);
+      while(bytes_remaining > 0) {
+         rc = recv(sockfd, buffer, len, 0);
+         bytes_received = bytes_received + rc;
+         bytes_remaining = bytes_remaining - rc;
+      }
+
+  
+  //return recv(sockfd, buffer, len, 0);
+  return bytes_received;
 }
 
 /*
@@ -32,14 +34,13 @@ int send_all(int sockfd, void *buffer, size_t len) {
   size_t bytes_sent = 0;
   size_t bytes_remaining = len;
   char *buff = buffer;
-  /*
-    while(bytes_remaining) {
-      TODO: Make the magic happen
-    }
-  */
+  int rc;
+      while(bytes_remaining > 0) {
+        rc = send(sockfd, buffer, len, 0);
+        bytes_sent = bytes_sent + rc;
+        bytes_remaining = bytes_remaining - rc;
+    
+      }
+    return bytes_sent;
 
-  /*
-    TODO: Returnam exact cati octeti am trimis
-  */
-  return send(sockfd, buffer, len, 0);
 }

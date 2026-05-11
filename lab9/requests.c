@@ -25,12 +25,25 @@ char *compute_get_request(char *host, char *url, char *query_params,
     compute_message(message, line);
 
     // Step 2: add the host
+    sprintf(line, "Host: %s", host);
+    compute_message(message, line);
+
     // Step 3 (optional): add headers and/or cookies, according to the protocol format
     if (cookies != NULL) {
-       
+        sprintf(line, "Cookie: ");
+        for (int i = 0; i < cookies_count; i++) {
+            strcat(line, cookies[i]);
+            if (i < cookies_count - 1) {
+                strcat(line, "; ");
+            }
+        }
+        compute_message(message, line);
     }
+    
     // Step 4: add final new line
     compute_message(message, "");
+    
+    free(line);
     return message;
 }
 
@@ -46,19 +59,45 @@ char *compute_post_request(char *host, char *url, char* content_type, char **bod
     compute_message(message, line);
     
     // Step 2: add the host
+    sprintf(line, "Host: %s", host);
+    compute_message(message, line);
+
     /* Step 3: add necessary headers (Content-Type and Content-Length are mandatory)
             in order to write Content-Length you must first compute the message size
     */
+    for (int i = 0; i < body_data_fields_count; i++) {
+        strcat(body_data_buffer, body_data[i]);
+        if (i < body_data_fields_count - 1) {
+            strcat(body_data_buffer, "&");
+        }
+    }
+
+    sprintf(line, "Content-Type: %s", content_type);
+    compute_message(message, line);
+
+    sprintf(line, "Content-Length: %ld", strlen(body_data_buffer));
+    compute_message(message, line);
+
     // Step 4 (optional): add cookies
     if (cookies != NULL) {
-       
+        sprintf(line, "Cookie: ");
+        for (int i = 0; i < cookies_count; i++) {
+            strcat(line, cookies[i]);
+            if (i < cookies_count - 1) {
+                strcat(line, "; ");
+            }
+        }
+        compute_message(message, line);
     }
+    
     // Step 5: add new line at end of header
+    compute_message(message, "");
 
     // Step 6: add the actual payload data
     memset(line, 0, LINELEN);
     strcat(message, body_data_buffer);
 
     free(line);
+    free(body_data_buffer); // adaugat pentru a nu avea memory leaks la test
     return message;
 }

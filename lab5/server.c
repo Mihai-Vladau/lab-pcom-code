@@ -24,7 +24,6 @@ void recv_seq_udp(int sockfd, struct seq_udp *seq_packet) {
   /* Receive the contents of the file */
   int rc = recvfrom(sockfd, seq_packet, sizeof(struct seq_udp), 0,
                     (struct sockaddr *)&client_addr, &clen);
-  DIE(rc < 0, "recvfrom");
 
   int ack = 0;
   // Sending ACK. We model ACK as datagrams with only an int of value 0.
@@ -73,7 +72,7 @@ void recv_a_message(int sockfd) {
   DIE(rc < 0, "send");
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
   int sockfd;
   struct sockaddr_in servaddr;
 
@@ -104,8 +103,8 @@ int main(void) {
 
   // TODO 1.0: Study the code. Uncoment this to receive a file chuck by chuck
   // and save it locally
-  recv_a_message(sockfd);
-  // recv_a_file(sockfd, SAVED_FILENAME);
+  //recv_a_message(sockfd);
+  recv_a_file(sockfd, SAVED_FILENAME);
 
   return 0;
 }

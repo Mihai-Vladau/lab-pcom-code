@@ -49,7 +49,10 @@ void send_file_start_stop(int sockfd, struct sockaddr_in server_address,
     d.len = n;
 
     /* TODO 1.2: Send the datagram. */
-
+    rc = sendto(sockfd, &d, sizeof(struct seq_udp), 0,
+                  (struct sockaddr *)&server_address, sizeof(server_address));
+    int ack;
+    recvfrom(sockfd, &ack, sizeof(ack), 0, NULL, NULL);
     /* TODO 1.3: Wait for ACK before moving to the next datagram to send. */
     
     if (n == 0) // end of file
@@ -66,8 +69,8 @@ void send_file_window(int sockfd, struct sockaddr_in server_address,
   int rc;
 
   /* TODO 2.1: Increase window size to a value that optimally uses the link */
-  int window_size = 1;
-
+  int window_size = 24;
+  int len = 0;
   while (1) {
     /* TODO: 1.1 Read all the data of the and add it as datagrams in
      * datagram_queue */
@@ -76,16 +79,41 @@ void send_file_window(int sockfd, struct sockaddr_in server_address,
     int n = read(fd, d->payload, sizeof(d->payload));
     DIE(n < 0, "read");
     d->len = n;
-    //queue_enq(datagram_queue, d);
+    len++;
+    queue_enq(datagram_queue, d);
 
     if (n == 0) // end of file
       break;
   }
 
-  // seq_udp *t = queue_deq(datagram_queue)
+   struct seq_udp *t = queue_deq(datagram_queue);
 
   /* TODO 2.2: Send window_size packets from the queue. Don't forget to free the
    * data. */
+   window_size = (window_size > len) ?  len : window_size;
+   int flight_packet = 0;
+  while (window_size > flight_packet ) {    
+    rc = sendto(sockfd, t, sizeof(struct seq_udp), 0,
+                  (struct sockaddr *)&server_address, sizeof(server_address));
+    flight_packet ++;
+    free(t);
+    t = queue_deq(datagram_queue);
+  }
+  // presupunem ca nu se face retransmisie 
+  while (flight_packet != 0) {
+      int ack;
+      recvfrom(sockfd, &ack, sizeof(ack), 0, NULL, NULL);
+      flight_packet--;
+      if (!queue_empty(datagram_queue) && flight_packet < window_size) {
+        t = queue_deq(datagram_queue);
+        flight_packet++;
+          rc = sendto(sockfd, t, sizeof(struct seq_udp), 0,
+                  (struct sockaddr *)&server_address, sizeof(server_address));
+        free(t);
+      }
+  }
+
+
 
   /* TODO 2.2: On ACK, slide the window by popping the queue and sending the
    * next datagram. */
@@ -110,7 +138,7 @@ void send_a_message(int sockfd, struct sockaddr_in server_address) {
   rc = recvfrom(sockfd, &ack, sizeof(ack), 0, NULL, NULL);
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
 
   /* We use this structure to store the server info. IP address and Port.
    * This will be written by the UDP implementation into the header */
@@ -132,15 +160,14 @@ int main(void) {
   memset(&servaddr, 0, sizeof(servaddr));
   servaddr.sin_family = AF_INET;
   servaddr.sin_port = htons(PORT);
-  rc = inet_aton(SERVER_IP, &servaddr.sin_addr);
-  DIE(rc == 0, "Invalid IP address for server");
+  inet_aton(SERVER_IP, &servaddr.sin_addr);
 
   /* TODO: Read the demo function.
   Implement and test (one at a time) each of the proposed versions for sending a
   file. */
-  send_a_message(sockfd, servaddr);
+  //send_a_message(sockfd, servaddr);
   // send_file_start_stop(sockfd, servaddr, SENT_FILENAME);
-  // send_file_window(sockfd, servaddr, SENT_FILENAME);
+  send_file_window(sockfd, servaddr, SENT_FILENAME);
 
   /* Print the runtime of the program */
   TOCK(TIME_A);
